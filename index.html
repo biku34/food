@@ -20,7 +20,7 @@
             margin-top: 1.5em;
             margin-bottom: 0.5em;
         }
-        .prose :where(p, ul, ol, pre) {
+        .prose :where(p, ul, ol, pre, div) { /* Added div to prose for general content */
             color: #d1d5db; /* gray-300 */
             line-height: 1.75;
         }
@@ -40,15 +40,31 @@
             padding: 1rem;
             overflow-x: auto;
         }
+        /* Custom scrollbar for pre elements */
+        pre::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        pre::-webkit-scrollbar-track {
+            background: #374151;
+            border-radius: 10px;
+        }
+        pre::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 10px;
+        }
+        pre::-webkit-scrollbar-thumb:hover {
+            background: #4338ca;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center py-8 px-4">
 
     <!-- Message Box -->
-    <div id="messageBox" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-3 text-white hidden">
-        <span id="messageIcon"></span>
+    <div id="messageBox" role="alert" aria-live="polite" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-3 text-white hidden">
+        <span id="messageIcon" aria-hidden="true"></span>
         <span id="messageText"></span>
-        <button onclick="hideMessage()" class="ml-4 text-white hover:text-gray-200">
+        <button onclick="hideMessage()" class="ml-4 text-white hover:text-gray-200" aria-label="Close message">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-circle"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
         </button>
     </div>
@@ -61,6 +77,9 @@
         <p class="text-gray-300 text-lg">
             Your personal AI-powered food analyzer. Scan labels, track meals, and make smarter dietary choices.
         </p>
+        <button onclick="clearAll()" class="mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl shadow-md transition duration-300">
+            Clear All
+        </button>
     </header>
 
     <!-- Main Content Area -->
@@ -78,11 +97,13 @@
                 id="imageInput"
                 onchange="handleImageChange(event)"
                 class="w-full p-3 mb-4 text-gray-300 bg-gray-700 border border-gray-600 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+                aria-label="Upload food label image"
             />
             <button
                 onclick="processImage()"
                 id="processImageBtn"
                 class="w-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-800 transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-busy="false" aria-live="polite"
             >
                 <svg id="imageAnalyzerSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -109,10 +130,15 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart mr-2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                     Nutrition Summary
                 </h3>
-                <p class="text-gray-200 mb-2">Total Calories: <span class="font-bold text-yellow-300" id="totalCalories">0 kcal</span></p>
-                <p class="text-gray-200 mb-2">Total Fat: <span class="font-bold text-yellow-300" id="totalFat">0g</span></p>
-                <p class="text-gray-200 mb-2">Total Carbs: <span class="font-bold text-yellow-300" id="totalCarbs">0g</span></p>
-                <p class="text-gray-200 mb-4">Total Protein: <span class="font-bold text-yellow-300" id="totalProtein">0g</span></p>
+                <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-gray-200 mb-4">
+                    <p>Total Calories: <span class="font-bold text-yellow-300" id="totalCalories">0 kcal</span></p>
+                    <p>Total Fat: <span class="font-bold text-yellow-300" id="totalFat">0g</span></p>
+                    <p>Total Carbs: <span class="font-bold text-yellow-300" id="totalCarbs">0g</span></p>
+                    <p>Total Protein: <span class="font-bold text-yellow-300" id="totalProtein">0g</span></p>
+                    <p>Sodium: <span class="font-bold text-yellow-300" id="totalSodium">N/A</span></p>
+                    <p>Sugars: <span class="font-bold text-yellow-300" id="totalSugars">N/A</span></p>
+                </div>
+                <h4 class="text-lg font-semibold text-gray-200 mb-2">Detailed Breakdown:</h4>
                 <pre id="detailedNutritionOutput" class="text-gray-300 text-sm whitespace-pre-wrap break-words"></pre>
             </div>
 
@@ -128,6 +154,7 @@
                 placeholder="e.g. gluten, soy, sugar, dairy"
                 oninput="updateFlaggedIngredients()"
                 class="w-full p-3 text-gray-300 bg-gray-700 border border-gray-600 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                aria-label="Enter ingredients to avoid"
             />
             <div id="flaggedIngredientsOutput" class="w-full"></div>
         </div>
@@ -146,6 +173,7 @@
                 placeholder="E.g., 1 boiled egg, 1 toast, 1 cup coffee"
                 rows="4"
                 class="w-full p-3 mb-4 text-gray-300 bg-gray-700 border border-gray-600 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                aria-label="Describe your meal"
             ></textarea>
 
             <label for="condition" class="block mb-2 font-medium text-gray-300 w-full">
@@ -154,6 +182,7 @@
             <select
                 id="condition"
                 class="w-full p-3 mb-6 text-gray-300 bg-gray-700 border border-gray-600 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                aria-label="Select your health condition"
             >
                 <option value="none">None</option>
                 <option value="diabetes">Diabetes</option>
@@ -162,13 +191,18 @@
                 <option value="high_cholesterol">High Cholesterol</option>
                 <option value="kidney_disease">Kidney Disease</option>
                 <option value="heart_disease">Heart Disease</option>
-                <option value="allergies">Specific Allergies (e.g., nuts, shellfish)</option>
+                <option value="allergies">Specific Allergies</option>
+                <option value="vegan">Vegan</option>
+                <option value="vegetarian">Vegetarian</option>
+                <option value="keto">Keto Diet</option>
+                <option value="paleo">Paleo Diet</option>
             </select>
 
             <button
                 onclick="analyzeUserFood()"
                 id="analyzeUserFoodBtn"
                 class="w-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-800 transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-busy="false" aria-live="polite"
             >
                 <svg id="personalAnalyzerSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -185,15 +219,35 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart mr-2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                     Your Meal Nutrition Summary
                 </h3>
-                <p class="text-gray-200 mb-2">Total Calories: <span class="font-bold text-yellow-300" id="userTotalCalories">0 kcal</span></p>
-                <p class="text-gray-200 mb-2">Total Fat: <span class="font-bold text-yellow-300" id="userTotalFat">0g</span></p>
-                <p class="text-gray-200 mb-2">Total Carbs: <span class="font-bold text-yellow-300" id="userTotalCarbs">0g</span></p>
-                <p class="text-gray-200 mb-4">Total Protein: <span class="font-bold text-yellow-300" id="userTotalProtein">0g</span></p>
+                <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-gray-200 mb-4">
+                    <p>Total Calories: <span class="font-bold text-yellow-300" id="userTotalCalories">0 kcal</span></p>
+                    <p>Total Fat: <span class="font-bold text-yellow-300" id="userTotalFat">0g</span></p>
+                    <p>Total Carbs: <span class="font-bold text-yellow-300" id="userTotalCarbs">0g</span></p>
+                    <p>Total Protein: <span class="font-bold text-yellow-300" id="userTotalProtein">0g</span></p>
+                    <p>Sodium: <span class="font-bold text-yellow-300" id="userTotalSodium">N/A</span></p>
+                    <p>Sugars: <span class="font-bold text-yellow-300" id="userTotalSugars">N/A</span></p>
+                </div>
+                <h4 class="text-lg font-semibold text-gray-200 mb-2">Detailed Breakdown:</h4>
                 <pre id="userDetailedNutritionOutput" class="text-gray-300 text-sm whitespace-pre-wrap break-words"></pre>
             </div>
 
             <div id="userAiExplanationOutput" class="w-full"></div>
+            <div id="userTipsOutput" class="w-full"></div>
         </div>
+    </div>
+
+    <!-- Analysis History Section -->
+    <div class="w-full max-w-6xl mt-8 bg-gray-800 p-8 rounded-2xl shadow-xl">
+        <h2 class="text-3xl font-bold text-yellow-400 mb-6 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history mr-3"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v6h4"/></svg>
+            Analysis History
+        </h2>
+        <div id="historyList" class="space-y-4">
+            <p class="text-gray-400" id="noHistoryMessage">No analysis history yet. Analyze a food label or meal to start!</p>
+        </div>
+        <button onclick="clearHistory()" class="mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl shadow-md transition duration-300 hidden" id="clearHistoryBtn">
+            Clear History
+        </button>
     </div>
 
     <!-- Footer -->
@@ -217,12 +271,18 @@
         let currentUserNutritionData = null; // Stores data from personal meal analysis
 
         // --- Message Box Functions ---
+        /**
+         * Displays a custom message box with a specified message and type.
+         * @param {string} msg - The message to display.
+         * @param {'info'|'success'|'error'|'warning'} type - The type of message (influences color and icon).
+         */
         function showMessage(msg, type = 'info') {
             const messageBox = document.getElementById('messageBox');
             const messageText = document.getElementById('messageText');
             const messageIcon = document.getElementById('messageIcon');
 
             messageText.innerText = msg;
+            // Reset classes to ensure only one background color is applied
             messageBox.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-3 text-white';
 
             let bgColorClass = 'bg-blue-500';
@@ -251,12 +311,21 @@
             }, 5000);
         }
 
+        /**
+         * Hides the custom message box.
+         */
         function hideMessage() {
-            document.getElementById('messageBox').classList.add('hidden');
-            document.getElementById('messageBox').className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-3 text-white hidden'; // Reset classes
+            const messageBox = document.getElementById('messageBox');
+            messageBox.classList.add('hidden');
+            // Reset classes to prepare for next message
+            messageBox.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-3 text-white hidden';
         }
 
         // --- Image Analyzer Functions ---
+        /**
+         * Handles the change event for the image input, displaying a preview.
+         * @param {Event} event - The input change event.
+         */
         function handleImageChange(event) {
             const file = event.target.files[0];
             const imagePreview = document.getElementById('imagePreview');
@@ -264,31 +333,44 @@
                 imagePreview.src = URL.createObjectURL(file);
                 imagePreview.classList.remove('hidden');
                 // Clear previous results
-                document.getElementById('ocrTextOutput').innerText = '';
-                document.getElementById('ocrTextDetails').classList.add('hidden');
-                document.getElementById('nutritionSummaryOutput').classList.add('hidden');
-                document.getElementById('aiExplanationOutput').innerHTML = '';
-                document.getElementById('flaggedIngredientsOutput').innerHTML = '';
+                clearImageAnalyzerOutputs();
                 currentNutritionData = null; // Reset stored data
             } else {
                 imagePreview.classList.add('hidden');
             }
         }
 
-        async function processImage() {
-            const fileInput = document.getElementById('imageInput');
-            if (!fileInput.files[0]) {
-                showMessage("Please upload an image of a food label.", "warning");
-                return;
-            }
-
-            setLoadingState('imageAnalyzer', true, "Extracting text from image...");
+        /**
+         * Clears all output sections related to the image analyzer.
+         */
+        function clearImageAnalyzerOutputs() {
             document.getElementById('ocrTextOutput').innerText = '';
             document.getElementById('ocrTextDetails').classList.add('hidden');
             document.getElementById('nutritionSummaryOutput').classList.add('hidden');
             document.getElementById('aiExplanationOutput').innerHTML = '';
             document.getElementById('flaggedIngredientsOutput').innerHTML = '';
-            currentNutritionData = null;
+            document.getElementById('totalCalories').innerText = '0 kcal';
+            document.getElementById('totalFat').innerText = '0g';
+            document.getElementById('totalCarbs').innerText = '0g';
+            document.getElementById('totalProtein').innerText = '0g';
+            document.getElementById('totalSodium').innerText = 'N/A';
+            document.getElementById('totalSugars').innerText = 'N/A';
+            document.getElementById('detailedNutritionOutput').innerText = '';
+        }
+
+        /**
+         * Processes the uploaded image to extract text, analyze nutrition, and get AI insights.
+         */
+        async function processImage() {
+            const fileInput = document.getElementById('imageInput');
+            if (!fileInput.files[0]) {
+                showMessage("Please upload an image of a food label to analyze.", "warning");
+                return;
+            }
+
+            clearImageAnalyzerOutputs(); // Clear outputs before new analysis
+            setLoadingState('imageAnalyzer', true, "Extracting text from image...");
+            currentNutritionData = null; // Ensure data is cleared for new run
 
             try {
                 const result = await Tesseract.recognize(fileInput.files[0], 'eng');
@@ -301,23 +383,34 @@
 
                 setLoadingState('imageAnalyzer', true, "Analyzing nutrition data...");
                 const nutritionData = await fetchNutrition(cleanedIngredients);
-                currentNutritionData = nutritionData; // Store for flagging
+                currentNutritionData = nutritionData; // Store for flagging and history
 
                 if (nutritionData.output) {
                     document.getElementById('totalCalories').innerText = `${nutritionData.totalCalories} kcal`;
                     document.getElementById('totalFat').innerText = `${nutritionData.totalFat}g`;
                     document.getElementById('totalCarbs').innerText = `${nutritionData.totalCarbs}g`;
                     document.getElementById('totalProtein').innerText = `${nutritionData.totalProtein}g`;
+                    document.getElementById('totalSodium').innerText = `${nutritionData.totalSodium || 'N/A'}`;
+                    document.getElementById('totalSugars').innerText = `${nutritionData.totalSugars || 'N/A'}`;
                     document.getElementById('detailedNutritionOutput').innerText = nutritionData.output;
                     document.getElementById('nutritionSummaryOutput').classList.remove('hidden');
                 }
 
                 const ingredientsArray = nutritionData.ingredients.map(item => item.food_name);
-                updateFlaggedIngredients(ingredientsArray); // Initial flag update
+                updateFlaggedIngredients(ingredientsArray); // Initial flag update based on current input
 
                 setLoadingState('imageAnalyzer', true, "Generating AI insights...");
-                const aiResponse = await askGroqAI(ingredientsArray);
+                const aiResponse = await askGroqAI(ingredientsArray, document.getElementById('condition').value);
                 document.getElementById('aiExplanationOutput').innerHTML = aiResponse;
+
+                // Save to history
+                saveAnalysisToHistory('label', {
+                    image: document.getElementById('imagePreview').src,
+                    ocrText: rawText,
+                    nutrition: nutritionData,
+                    aiExplanation: aiResponse,
+                    flaggedIngredients: document.getElementById('filters').value
+                });
 
                 showMessage("Food label analyzed successfully!", "success");
             } catch (error) {
@@ -328,6 +421,11 @@
             }
         }
 
+        /**
+         * Cleans raw OCR text into a comma-separated list of ingredients using Groq AI.
+         * @param {string} rawText - The raw text extracted from OCR.
+         * @returns {Promise<string>} A promise that resolves to the cleaned ingredients string.
+         */
         async function cleanIngredientsWithAI(rawText) {
             const prompt = `The following text was extracted from a food label and may contain typos, irrelevant information, or be poorly formatted. Your task is to identify and return ONLY a clean, comma-separated list of ingredients. Do not include nutritional facts, serving sizes, or any other information. If no clear ingredients list is present, return "No ingredients found."
 
@@ -348,20 +446,25 @@
                         "Authorization": `Bearer ${GROQ_API_KEY}`
                     },
                     body: JSON.stringify({
-                        model: "llama3-8b-8192",
+                        model: "llama3-8b-8192", // Using a general model for text cleaning
                         messages: [{ role: "user", content: prompt }],
-                        temperature: 0.1
+                        temperature: 0.1 // Keep temperature low for precise cleaning
                     })
                 });
                 const data = await res.json();
                 return data.choices?.[0]?.message?.content || "No ingredients found.";
             } catch (error) {
                 console.error("Error cleaning ingredients with AI:", error);
-                showMessage("AI cleaning failed. Using raw text for analysis.", "warning");
-                return rawText;
+                showMessage("AI cleaning failed for ingredients. Using raw text for analysis.", "warning");
+                return rawText; // Fallback to raw text if AI fails
             }
         }
 
+        /**
+         * Updates the display of flagged ingredients based on user input and current nutrition data.
+         * @param {Array<string>} [ingredients=null] - Optional array of ingredient names to flag against.
+         * If null, uses `currentNutritionData`.
+         */
         function updateFlaggedIngredients(ingredients = null) {
             const flaggedInput = document.getElementById("filters").value.toLowerCase().split(/,\s*/).filter(Boolean);
             const flaggedOutputDiv = document.getElementById("flaggedIngredientsOutput");
@@ -394,6 +497,25 @@
 
 
         // --- Personal Diet Analyzer Functions ---
+        /**
+         * Clears all output sections related to the personal diet analyzer.
+         */
+        function clearPersonalAnalyzerOutputs() {
+            document.getElementById('userNutritionSummaryOutput').classList.add('hidden');
+            document.getElementById('userAiExplanationOutput').innerHTML = '';
+            document.getElementById('userTipsOutput').innerHTML = '';
+            document.getElementById('userTotalCalories').innerText = '0 kcal';
+            document.getElementById('userTotalFat').innerText = '0g';
+            document.getElementById('userTotalCarbs').innerText = '0g';
+            document.getElementById('userTotalProtein').innerText = '0g';
+            document.getElementById('userTotalSodium').innerText = 'N/A';
+            document.getElementById('userTotalSugars').innerText = 'N/A';
+            document.getElementById('userDetailedNutritionOutput').innerText = '';
+        }
+
+        /**
+         * Analyzes user-described food input to provide nutrition and AI insights.
+         */
         async function analyzeUserFood() {
             const userText = document.getElementById('userText').value.trim();
             const healthCondition = document.getElementById('condition').value;
@@ -403,20 +525,21 @@
                 return;
             }
 
+            clearPersonalAnalyzerOutputs(); // Clear outputs before new analysis
             setLoadingState('personalAnalyzer', true, "Analyzing your meal...");
-            document.getElementById('userNutritionSummaryOutput').classList.add('hidden');
-            document.getElementById('userAiExplanationOutput').innerHTML = '';
-            currentUserNutritionData = null;
+            currentUserNutritionData = null; // Ensure data is cleared for new run
 
             try {
                 const nutritionData = await fetchNutrition(userText);
-                currentUserNutritionData = nutritionData; // Store for potential future use
+                currentUserNutritionData = nutritionData; // Store for history
 
                 if (nutritionData.output) {
                     document.getElementById('userTotalCalories').innerText = `${nutritionData.totalCalories} kcal`;
                     document.getElementById('userTotalFat').innerText = `${nutritionData.totalFat}g`;
                     document.getElementById('userTotalCarbs').innerText = `${nutritionData.totalCarbs}g`;
                     document.getElementById('userTotalProtein').innerText = `${nutritionData.totalProtein}g`;
+                    document.getElementById('userTotalSodium').innerText = `${nutritionData.totalSodium || 'N/A'}`;
+                    document.getElementById('userTotalSugars').innerText = `${nutritionData.totalSugars || 'N/A'}`;
                     document.getElementById('userDetailedNutritionOutput').innerText = nutritionData.output;
                     document.getElementById('userNutritionSummaryOutput').classList.remove('hidden');
                 }
@@ -425,6 +548,19 @@
                 const ingredientsArray = nutritionData.ingredients.map(item => item.food_name);
                 const aiResponse = await askGroqAI(ingredientsArray, healthCondition);
                 document.getElementById('userAiExplanationOutput').innerHTML = aiResponse;
+
+                setLoadingState('personalAnalyzer', true, "Generating dietary tips...");
+                const tipsResponse = await askGroqAIForTips(nutritionData, healthCondition);
+                document.getElementById('userTipsOutput').innerHTML = tipsResponse;
+
+                // Save to history
+                saveAnalysisToHistory('meal', {
+                    mealDescription: userText,
+                    healthCondition: healthCondition,
+                    nutrition: nutritionData,
+                    aiExplanation: aiResponse,
+                    tips: tipsResponse
+                });
 
                 showMessage("Meal analyzed successfully!", "success");
             } catch (error) {
@@ -435,7 +571,12 @@
             }
         }
 
-        // --- Common Functions (used by both analyzers) ---
+        // --- Common API Functions (used by both analyzers) ---
+        /**
+         * Fetches nutrition data for a given food query using Nutritionix API.
+         * @param {string} query - The food item or meal description.
+         * @returns {Promise<Object>} A promise resolving to an object with nutrition summary.
+         */
         async function fetchNutrition(query) {
             try {
                 const res = await fetch("https://trackapi.nutritionix.com/v2/natural/nutrients", {
@@ -453,6 +594,8 @@
                 let totalFat = 0;
                 let totalCarbs = 0;
                 let totalProtein = 0;
+                let totalSodium = 0; // Added sodium
+                let totalSugars = 0; // Added sugars
                 let ingredientsList = [];
                 let outputText = "";
 
@@ -463,7 +606,12 @@
                         totalFat += f.nf_total_fat || 0;
                         totalCarbs += f.nf_total_carbohydrate || 0;
                         totalProtein += f.nf_protein || 0;
-                        outputText += `• ${f.food_name}: ${f.nf_calories?.toFixed(1) || 0} kcal, Fat: ${f.nf_total_fat?.toFixed(1) || 0}g, Carbs: ${f.nf_total_carbohydrate?.toFixed(1) || 0}g, Protein: ${f.nf_protein?.toFixed(1) || 0}g\n`;
+                        totalSodium += f.nf_sodium || 0; // Sum sodium
+                        totalSugars += f.nf_sugars || 0; // Sum sugars
+                        outputText += `• ${f.food_name}: ${f.nf_calories?.toFixed(1) || 0} kcal, Fat: ${f.nf_total_fat?.toFixed(1) || 0}g, Carbs: ${f.nf_total_carbohydrate?.toFixed(1) || 0}g, Protein: ${f.nf_protein?.toFixed(1) || 0}g`;
+                        if (f.nf_sodium) outputText += `, Sodium: ${f.nf_sodium?.toFixed(1) || 0}mg`;
+                        if (f.nf_sugars) outputText += `, Sugars: ${f.nf_sugars?.toFixed(1) || 0}g`;
+                        outputText += `\n`;
                     });
                 } else {
                     outputText = "No detailed nutrition data found for these items.";
@@ -475,27 +623,39 @@
                     totalCalories: totalCalories.toFixed(1),
                     totalFat: totalFat.toFixed(1),
                     totalCarbs: totalCarbs.toFixed(1),
-                    totalProtein: totalProtein.toFixed(1)
+                    totalProtein: totalProtein.toFixed(1),
+                    totalSodium: totalSodium.toFixed(1), // Return total sodium
+                    totalSugars: totalSugars.toFixed(1) // Return total sugars
                 };
             } catch (error) {
                 console.error("Error fetching nutrition:", error);
                 showMessage("Failed to fetch nutrition data. Please check the input.", "error");
-                return { ingredients: [], output: "Error fetching nutrition data.", totalCalories: 0, totalFat: 0, totalCarbs: 0, totalProtein: 0 };
+                return { ingredients: [], output: "Error fetching nutrition data.", totalCalories: 0, totalFat: 0, totalCarbs: 0, totalProtein: 0, totalSodium: 0, totalSugars: 0 };
             }
         }
 
+        /**
+         * Asks Groq AI for detailed ingredient analysis, formatted as HTML.
+         * @param {Array<string>} ingredients - List of ingredient names.
+         * @param {string} condition - User's health condition.
+         * @returns {Promise<string>} A promise resolving to HTML string of AI explanation.
+         */
         async function askGroqAI(ingredients, condition = "none") {
-            if (ingredients.length === 0 || ingredients[0] === "No ingredients found.") {
+            if (ingredients.length === 0 || ingredients[0] === "No ingredients found." || ingredients[0] === "") {
                 return `<p class='text-gray-400'>No specific ingredients to analyze.</p>`;
             }
 
             const prompt = `As a highly knowledgeable food and nutrition expert, analyze the following ingredients. For each ingredient, provide:
-            1.  **What it is:** A brief, clear description.
-            2.  **Who should/shouldn't consume it:** Specific groups or individuals who should be cautious or avoid it, and those who might benefit.
-            3.  **Health implications:** Key benefits, potential risks, or warnings.
-            4.  **Consider the user's health condition:** The user has indicated their condition is "${condition}". Tailor your advice accordingly.
+            1.  <strong>What it is:</strong> A brief, clear description.
+            2.  <strong>Who should/shouldn't consume it:</strong> Specific groups or individuals who should be cautious or avoid it, and those who might benefit.
+            3.  <strong>Health implications:</strong> Key benefits, potential risks, or warnings.
+            4.  <strong>Consider the user's health condition:</strong> The user has indicated their condition is "${condition}". Tailor your advice accordingly.
 
-            Format your response clearly with headings for each ingredient. Conclude with an overall summary of the meal's suitability for the user's condition if a condition is specified.
+            Format your response using HTML tags:
+            * Use <h3> for ingredient names.
+            * Use <p> for paragraphs.
+            * Use <ul> and <li> for lists if applicable.
+            * Conclude with an overall summary of the meal's suitability for the user's condition within a <p> tag.
 
             Ingredients:
             ${ingredients.join("\n")}`;
@@ -515,13 +675,13 @@
                 });
                 const json = await res.json();
                 const rawText = json.choices?.[0]?.message?.content || "AI analysis is currently unavailable.";
-                return `<details class="mt-4 p-4 bg-gray-800 rounded-lg shadow-inner">
+                return `<details class="mt-4 p-4 bg-gray-800 rounded-lg shadow-inner prose prose-invert">
                             <summary class="font-semibold text-yellow-300 cursor-pointer flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                                 Detailed Analysis
                             </summary>
-                            <div class="prose prose-invert text-gray-300 mt-4 max-w-none">
-                                ${rawText.replace(/\n/g, '<br/>')}
+                            <div class="mt-4 max-w-none">
+                                ${rawText}
                             </div>
                         </details>`;
             } catch (error) {
@@ -531,7 +691,64 @@
             }
         }
 
+        /**
+         * Asks Groq AI for general dietary tips based on overall nutrition and health condition.
+         * @param {Object} nutritionData - The nutrition summary object.
+         * @param {string} condition - User's health condition.
+         * @returns {Promise<string>} A promise resolving to HTML string of dietary tips.
+         */
+        async function askGroqAIForTips(nutritionData, condition = "none") {
+            const prompt = `Based on the following meal's nutrition summary and the user's health condition, provide concise, actionable dietary tips and recommendations.
+            Nutrition Summary:
+            - Calories: ${nutritionData.totalCalories} kcal
+            - Fat: ${nutritionData.totalFat}g
+            - Carbs: ${nutritionData.totalCarbs}g
+            - Protein: ${nutritionData.totalProtein}g
+            - Sodium: ${nutritionData.totalSodium}mg
+            - Sugars: ${nutritionData.totalSugars}g
+
+            User's Health Condition: ${condition}
+
+            Provide tips in HTML format, using <h3> for the title, <p> for paragraphs, and <ul> with <li> for bullet points. Focus on practical advice relevant to their condition and the meal's nutritional profile.`;
+
+            try {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "llama3-8b-8192",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.7
+                    })
+                });
+                const json = await res.json();
+                const rawText = json.choices?.[0]?.message?.content || "No specific tips available.";
+                return `<details class="mt-4 p-4 bg-gray-800 rounded-lg shadow-inner prose prose-invert">
+                            <summary class="font-semibold text-yellow-300 cursor-pointer flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lightbulb mr-2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/><path d="M10 18a2 2 0 1 1 4 0"/></svg>
+                                Dietary Tips & Recommendations
+                            </summary>
+                            <div class="mt-4 max-w-none">
+                                ${rawText}
+                            </div>
+                        </details>`;
+            } catch (error) {
+                console.error("Error asking Groq AI for tips:", error);
+                return `<p class='text-red-400'>Failed to load dietary tips.</p>`;
+            }
+        }
+
+
         // --- Loading State Management ---
+        /**
+         * Manages the loading state and messages for analyzer buttons.
+         * @param {'imageAnalyzer'|'personalAnalyzer'} analyzerType - The type of analyzer.
+         * @param {boolean} isLoading - True if loading, false otherwise.
+         * @param {string} [message=''] - The loading message to display.
+         */
         function setLoadingState(analyzerType, isLoading, message = '') {
             let spinnerId, btnTextId, btnId;
             if (analyzerType === 'imageAnalyzer') {
@@ -552,9 +769,11 @@
                 spinner.classList.remove('hidden');
                 btnText.innerHTML = message; // Update button text with loading message
                 button.disabled = true;
+                button.setAttribute('aria-busy', 'true');
             } else {
                 spinner.classList.add('hidden');
                 button.disabled = false;
+                button.setAttribute('aria-busy', 'false');
                 // Reset button text to original icon + text
                 if (analyzerType === 'imageAnalyzer') {
                     btnText.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search mr-2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Extract & Analyze`;
@@ -563,6 +782,174 @@
                 }
             }
         }
+
+        // --- History Management Functions ---
+        const HISTORY_KEY = 'nutriscan_analysis_history';
+
+        /**
+         * Loads analysis history from local storage and renders it.
+         */
+        function loadHistory() {
+            const historyList = document.getElementById('historyList');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            const noHistoryMessage = document.getElementById('noHistoryMessage');
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+
+            historyList.innerHTML = ''; // Clear current display
+
+            if (history.length === 0) {
+                noHistoryMessage.classList.remove('hidden');
+                clearHistoryBtn.classList.add('hidden');
+            } else {
+                noHistoryMessage.classList.add('hidden');
+                clearHistoryBtn.classList.remove('hidden');
+                history.forEach((item, index) => {
+                    const historyItemDiv = document.createElement('div');
+                    historyItemDiv.className = 'bg-gray-700 p-4 rounded-lg shadow-md';
+                    const date = new Date(item.timestamp).toLocaleString();
+                    let content = `
+                        <h4 class="text-xl font-semibold text-indigo-300 mb-2">${item.type === 'label' ? 'Food Label Analysis' : 'Personal Meal Analysis'}</h4>
+                        <p class="text-gray-400 text-sm mb-2">Analyzed on: ${date}</p>
+                    `;
+
+                    if (item.type === 'label') {
+                        content += `
+                            <p class="text-gray-300"><strong>OCR Text:</strong> ${item.ocrText.substring(0, 100)}...</p>
+                            <p class="text-gray-300"><strong>Total Calories:</strong> ${item.nutrition.totalCalories} kcal</p>
+                            <button onclick="viewHistoryItem(${index})" class="mt-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm py-1 px-3 rounded-md">View Details</button>
+                        `;
+                    } else { // type === 'meal'
+                        content += `
+                            <p class="text-gray-300"><strong>Meal Description:</strong> ${item.mealDescription}</p>
+                            <p class="text-gray-300"><strong>Health Condition:</strong> ${item.healthCondition}</p>
+                            <p class="text-gray-300"><strong>Total Calories:</strong> ${item.nutrition.totalCalories} kcal</p>
+                            <button onclick="viewHistoryItem(${index})" class="mt-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm py-1 px-3 rounded-md">View Details</button>
+                        `;
+                    }
+                    historyItemDiv.innerHTML = content;
+                    historyList.appendChild(historyItemDiv);
+                });
+            }
+        }
+
+        /**
+         * Saves an analysis result to local storage.
+         * @param {'label'|'meal'} type - The type of analysis.
+         * @param {Object} data - The analysis data to save.
+         */
+        function saveAnalysisToHistory(type, data) {
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            history.unshift({ type, timestamp: new Date().toISOString(), ...data }); // Add to beginning
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            loadHistory(); // Re-render history
+        }
+
+        /**
+         * Displays the full details of a selected history item in a modal-like fashion.
+         * For simplicity, this will render directly into the main content area for now.
+         * In a more complex app, this would be a dedicated modal.
+         * @param {number} index - The index of the history item to view.
+         */
+        function viewHistoryItem(index) {
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            const item = history[index];
+            if (!item) return;
+
+            // Clear current main content areas
+            clearAllOutputs(); // Clear all current outputs to show history item prominently
+
+            // Populate the relevant sections with history data
+            if (item.type === 'label') {
+                document.getElementById('imageInput').value = ''; // Clear file input
+                document.getElementById('imagePreview').src = item.image || '';
+                document.getElementById('imagePreview').classList.remove('hidden');
+
+                document.getElementById('ocrTextOutput').innerText = item.ocrText;
+                document.getElementById('ocrTextDetails').classList.remove('hidden');
+
+                if (item.nutrition) {
+                    document.getElementById('totalCalories').innerText = `${item.nutrition.totalCalories} kcal`;
+                    document.getElementById('totalFat').innerText = `${item.nutrition.totalFat}g`;
+                    document.getElementById('totalCarbs').innerText = `${item.nutrition.totalCarbs}g`;
+                    document.getElementById('totalProtein').innerText = `${item.nutrition.totalProtein}g`;
+                    document.getElementById('totalSodium').innerText = `${item.nutrition.totalSodium || 'N/A'}`;
+                    document.getElementById('totalSugars').innerText = `${item.nutrition.totalSugars || 'N/A'}`;
+                    document.getElementById('detailedNutritionOutput').innerText = item.nutrition.output;
+                    document.getElementById('nutritionSummaryOutput').classList.remove('hidden');
+                }
+                document.getElementById('aiExplanationOutput').innerHTML = item.aiExplanation;
+                document.getElementById('filters').value = item.flaggedIngredients || '';
+                updateFlaggedIngredients(item.nutrition ? item.nutrition.ingredients.map(ing => ing.food_name) : []); // Re-apply flags
+
+                showMessage(`Displaying historical food label analysis from ${new Date(item.timestamp).toLocaleString()}`, 'info');
+
+            } else { // type === 'meal'
+                document.getElementById('userText').value = item.mealDescription;
+                document.getElementById('condition').value = item.healthCondition;
+
+                if (item.nutrition) {
+                    document.getElementById('userTotalCalories').innerText = `${item.nutrition.totalCalories} kcal`;
+                    document.getElementById('userTotalFat').innerText = `${item.nutrition.totalFat}g`;
+                    document.getElementById('userTotalCarbs').innerText = `${item.nutrition.totalCarbs}g`;
+                    document.getElementById('userTotalProtein').innerText = `${item.nutrition.totalProtein}g`;
+                    document.getElementById('userTotalSodium').innerText = `${item.nutrition.totalSodium || 'N/A'}`;
+                    document.getElementById('userTotalSugars').innerText = `${item.nutrition.totalSugars || 'N/A'}`;
+                    document.getElementById('userDetailedNutritionOutput').innerText = item.nutrition.output;
+                    document.getElementById('userNutritionSummaryOutput').classList.remove('hidden');
+                }
+                document.getElementById('userAiExplanationOutput').innerHTML = item.aiExplanation;
+                document.getElementById('userTipsOutput').innerHTML = item.tips;
+
+                showMessage(`Displaying historical meal analysis from ${new Date(item.timestamp).toLocaleString()}`, 'info');
+            }
+
+            // Scroll to top to show the loaded data
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /**
+         * Clears all analysis history from local storage.
+         */
+        function clearHistory() {
+            if (confirm("Are you sure you want to clear all analysis history? This action cannot be undone.")) {
+                localStorage.removeItem(HISTORY_KEY);
+                loadHistory(); // Re-render to show empty state
+                showMessage("Analysis history cleared successfully!", "success");
+            }
+        }
+
+        /**
+         * Clears all inputs and outputs in both analyzer sections.
+         */
+        function clearAll() {
+            // Clear Image Analyzer
+            document.getElementById('imageInput').value = '';
+            document.getElementById('imagePreview').classList.add('hidden');
+            document.getElementById('filters').value = '';
+            clearImageAnalyzerOutputs();
+
+            // Clear Personal Diet Analyzer
+            document.getElementById('userText').value = '';
+            document.getElementById('condition').value = 'none';
+            clearPersonalAnalyzerOutputs();
+
+            // Clear global data
+            currentNutritionData = null;
+            currentUserNutritionData = null;
+
+            showMessage("All inputs and outputs cleared.", "info");
+        }
+
+        /**
+         * Clears all outputs in both analyzer sections (used when viewing history to prevent clutter).
+         */
+        function clearAllOutputs() {
+            clearImageAnalyzerOutputs();
+            clearPersonalAnalyzerOutputs();
+        }
+
+        // Load history when the page loads
+        document.addEventListener('DOMContentLoaded', loadHistory);
     </script>
 </body>
 </html>
