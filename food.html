@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Nutrition & Exercise OCR</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px #ccc; }
+    textarea { width: 100%; padding: 10px; font-size: 14px; }
+    img { max-width: 100%; margin-top: 10px; }
+    button { margin-top: 10px; padding: 10px 20px; cursor: pointer; }
+    .section { margin-top: 25px; }
+    pre { white-space: pre-wrap; background: #f0f0f0; padding: 10px; border-radius: 6px; }
+    .loading { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🥗 OCR + Nutrition + AI Insights</h2>
+
+    <input type="file" id="imgInput" accept="image/*">
+    <button onclick="extractText()">📤 Extract Text</button>
+    <div id="loading" class="loading"></div>
+    <img id="preview">
+
+    <div class="section">
+      <textarea id="inputText" rows="3" placeholder="Or type: 2 eggs, 1 toast, 30 minutes jogging"></textarea><br>
+      <button onclick="analyzeNutrition()">Analyze Nutrition</button>
+      <button onclick="analyzeExercise()">Analyze Exercise</button>
+      <button onclick="searchBranded()">Search Branded Food</button>
+    </div>
+
+    <div class="section">
+      <h3>📝 OCR or Input:</h3>
+      <pre id="ocrText"></pre>
+
+      <h3>📊 Nutrition Info:</h3>
+      <pre id="nutritionInfo"></pre>
+
+      <h3>🏃 Exercise Info:</h3>
+      <pre id="exerciseInfo"></pre>
+
+      <h3>🏷️ Branded Product Info:</h3>
+      <pre id="brandedInfo"></pre>
+
+      <h3>🤖 AI Explanation:</h3>
+      <pre id="aiExplanation"></pre>
+    </div>
+  </div>
+
+  <script>
+    const APP_ID = "53ad5054"; // replace or load from .env
+    const API_KEY = "4a64194066e8fd3e25092ba17e0bb02e";
+    const OPENROUTER_KEY = "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";
+
+    async function extractText() {
+      const file = document.getElementById("imgInput").files[0];
+      if (!file) return alert("Upload an image first.");
+      document.getElementById("preview").src = URL.createObjectURL(file);
+      document.getElementById("loading").innerText = "Extracting text...";
+      const result = await Tesseract.recognize(file, 'eng');
+      const text = result.data.text.trim();
+      document.getElementById("ocrText").innerText = text;
+      document.getElementById("inputText").value = text;
+      document.getElementById("loading").innerText = "";
+    }
+
+    async function analyzeNutrition() {
+      const query = document.getElementById("inputText").value;
+      if (!query) return;
+      document.getElementById("loading").innerText = "Fetching nutrition data...";
+      const res = await fetch("https://trackapi.nutritionix.com/v2/natural/nutrients", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-app-id": APP_ID,
+          "x-app-key": API_KEY
+        },
+        body: JSON.stringify({ query })
+      });
+      const data = await res.json();
+      if (!data.foods) return alert("No food data found.");
+      let output = "";
+      data.foods.forEach(f => {
+        output += `🍽️ ${f.food_name}\nCalories: ${f.nf_calories} kcal\nFat: ${f.nf_total_fat}g\nCarbs: ${f.nf_total_carbohydrate}g\nProtein: ${f.nf_protein}g\n\n`;
+      });
+      document.getElementById("nutritionInfo").innerText = output;
+      askAI(output);
+      document.getElementById("loading").innerText = "";
+    }
+
+    async function analyzeExercise() {
+      const query = document.getElementById("inputText").value;
+      if (!query) return;
+      document.getElementById("loading").innerText = "Calculating exercise data...";
+      const res = await fetch("https://trackapi.nutritionix.com/v2/natural/exercise", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-app-id": APP_ID,
+          "x-app-key": API_KEY
+        },
+        body: JSON.stringify({ query, gender: "male", weight_kg: 70, height_cm: 170, age: 21 }) // hardcoded demo data
+      });
+      const data = await res.json();
+      let output = "";
+      data.exercises?.forEach(e => {
+        output += `🏋️ ${e.name}\nDuration: ${e.duration_min} min\nCalories Burned: ${e.nf_calories}\n\n`;
+      });
+      document.getElementById("exerciseInfo").innerText = output;
+      document.getElementById("loading").innerText = "";
+    }
+
+    async function searchBranded() {
+      const query = document.getElementById("inputText").value;
+      if (!query) return;
+      document.getElementById("loading").innerText = "Searching branded food...";
+      const instant = await fetch(`https://trackapi.nutritionix.com/v2/search/instant?query=${encodeURIComponent(query)}`, {
+        headers: {
+          "x-app-id": APP_ID,
+          "x-app-key": API_KEY
+        }
+      });
+      const instantData = await instant.json();
+      const itemId = instantData.branded?.[0]?.nix_item_id;
+      if (!itemId) {
+        document.getElementById("brandedInfo").innerText = "No branded item found.";
+        return;
+      }
+
+      const itemRes = await fetch(`https://trackapi.nutritionix.com/v2/search/item?nix_item_id=${itemId}`, {
+        headers: {
+          "x-app-id": APP_ID,
+          "x-app-key": API_KEY
+        }
+      });
+      const item = await itemRes.json();
+      const info = item.foods?.[0];
+      const output = `🛍️ ${info.food_name} (${info.brand_name})\nCalories: ${info.nf_calories} kcal\nServing: ${info.serving_qty} ${info.serving_unit}`;
+      document.getElementById("brandedInfo").innerText = output;
+      askAI(output);
+      document.getElementById("loading").innerText = "";
+    }
+
+    async function askAI(text) {
+      document.getElementById("loading").innerText = "Asking AI for layman explanation...";
+      const prompt = `
+You are a helpful nutrition and health assistant.
+Answer these in simple language for this item:
+
+1. What is this?
+2. Is it healthy?
+3. Who is it good for?
+4. Who should avoid it?
+5. Any tips or warnings?
+
+Data:
+${text}
+      `.trim();
+
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + OPENROUTER_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "openrouter/mistral",
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      const data = await res.json();
+      document.getElementById("aiExplanation").innerText = data.choices?.[0]?.message?.content || "AI failed.";
+      document.getElementById("loading").innerText = "";
+    }
+  </script>
+</body>
+</html>
