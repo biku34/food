@@ -7,42 +7,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * { box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f9fafb; color: #1f2937; }
-    .container { max-width: 960px; margin: auto; padding: 30px 20px; }
-    h1 { text-align: center; font-size: 2.2em; margin-bottom: 10px; }
-    section { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-top: 30px; }
-    input, textarea, button { width: 100%; padding: 14px; margin-top: 12px; font-size: 1em; border: 1px solid #d1d5db; border-radius: 10px; transition: 0.2s; }
-    input:focus, textarea:focus, button:focus { outline: none; border-color: #6366f1; }
-    button { background: #6366f1; color: white; border: none; cursor: pointer; font-weight: 600; }
-    button:hover { background: #4f46e5; }
-    .loading { color: #059669; font-weight: bold; margin-top: 10px; }
-    pre { white-space: pre-wrap; background: #f3f4f6; padding: 15px; border-radius: 10px; margin-top: 15px; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #111827; color: #f9fafb; }
+    .container { display: flex; flex-direction: row; flex-wrap: wrap; max-width: 1200px; margin: auto; padding: 20px; gap: 20px; }
+    .column { flex: 1; min-width: 300px; background: #1f2937; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    h1, h2 { text-align: center; color: #facc15; }
+    input, textarea, button, select { width: 100%; padding: 12px; margin-top: 10px; font-size: 1em; border: 1px solid #374151; border-radius: 10px; background: #111827; color: #f9fafb; }
+    input:focus, textarea:focus, button:focus, select:focus { outline: none; border-color: #6366f1; }
+    button { background: #4f46e5; border: none; cursor: pointer; font-weight: 600; }
+    button:hover { background: #4338ca; }
+    .loading { color: #10b981; font-weight: bold; margin-top: 10px; }
+    pre, details { white-space: pre-wrap; background: #374151; padding: 15px; border-radius: 10px; margin-top: 15px; }
     img { max-width: 100%; border-radius: 12px; margin-top: 15px; }
+    summary { font-weight: bold; cursor: pointer; color: #fcd34d; }
+    label { display: block; margin-top: 10px; font-weight: 500; }
   </style>
 </head>
 <body>
+  <h1>🥗 Smart Food Analyzer</h1>
   <div class="container">
-    <h1>🥗 Smart Food Analyzer</h1>
-
-    <section>
-      <h2>📸 Upload a Food Label Image</h2>
+    <div class="column">
+      <h2>📸 Upload Label</h2>
       <input type="file" accept="image/*" id="imageInput">
       <button onclick="processImage()">Extract & Analyze</button>
       <div id="loading1" class="loading"></div>
       <img id="preview" style="display:none">
       <pre id="ocrText"></pre>
       <pre id="nutritionText"></pre>
-      <pre id="aiExplanation"></pre>
-    </section>
+      <div id="aiExplanation"></div>
+      <label for="filters">🔎 Flag ingredients you avoid (comma-separated)</label>
+      <input type="text" id="filters" placeholder="e.g. gluten, soy, sugar">
+    </div>
 
-    <section>
-      <h2>✍️ Or Describe What You Ate</h2>
+    <div class="column">
+      <h2>🧍 Personal Diet Input</h2>
+      <label for="userText">Describe Your Meal</label>
       <textarea id="userText" placeholder="E.g., 1 boiled egg, 1 toast, 1 cup coffee"></textarea>
+
+      <label for="condition">Select Your Health Condition</label>
+      <select id="condition">
+        <option value="none">None</option>
+        <option value="diabetes">Diabetes</option>
+        <option value="hypertension">High Blood Pressure</option>
+        <option value="celiac">Celiac/Gluten Intolerant</option>
+        <option value="high_cholesterol">High Cholesterol</option>
+      </select>
+
       <button onclick="analyzeUserFood()">Analyze</button>
       <div id="loading2" class="loading"></div>
       <pre id="userNutrition"></pre>
       <pre id="userAiExplanation"></pre>
-    </section>
+    </div>
   </div>
 
   <script>
@@ -65,18 +79,20 @@
       document.getElementById("loading1").innerText = "Analyzing nutrition...";
       const nutritionData = await fetchNutrition(cleanedIngredients);
       document.getElementById("nutritionText").innerText = nutritionData.output;
+      const flagged = highlightFlags(ingredientsArray);
       const aiResponse = await askGroqAI(ingredientsArray);
-      document.getElementById("aiExplanation").innerText = aiResponse;
+      document.getElementById("aiExplanation").innerHTML = aiResponse + flagged;
       document.getElementById("loading1").innerText = "";
     }
 
     async function analyzeUserFood() {
       const query = document.getElementById("userText").value.trim();
+      const condition = document.getElementById("condition").value;
       if (!query) return;
       document.getElementById("loading2").innerText = "Analyzing...";
       const nutritionData = await fetchNutrition(query);
       document.getElementById("userNutrition").innerText = nutritionData.output;
-      const aiResponse = await askGroqAI(nutritionData.ingredients);
+      const aiResponse = await askGroqAI(nutritionData.ingredients, condition);
       document.getElementById("userAiExplanation").innerText = aiResponse;
       document.getElementById("loading2").innerText = "";
     }
@@ -96,13 +112,13 @@
       let output = "";
       data.foods?.forEach(f => {
         ingredients.push(f.food_name);
-        output += `\u{1F35D} ${f.food_name}\nCalories: ${f.nf_calories} kcal\nFat: ${f.nf_total_fat}g\nCarbs: ${f.nf_total_carbohydrate}g\nProtein: ${f.nf_protein}g\n\n`;
+        output += `🍽️ ${f.food_name}\nCalories: ${f.nf_calories} kcal\nFat: ${f.nf_total_fat}g\nCarbs: ${f.nf_total_carbohydrate}g\nProtein: ${f.nf_protein}g\n\n`;
       });
       return { ingredients, output };
     }
 
     async function cleanIngredientsWithAI(rawText) {
-      const prompt = `This text was extracted from a food label using OCR and may contain typos. Please identify and return only the cleaned list of ingredients, separated by commas.\n\nOCR Text:\n${rawText}`;
+      const prompt = `Extracted OCR text may have typos. Identify and return only the cleaned list of ingredients, separated by commas.\n\nOCR Text:\n${rawText}`;
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -111,17 +127,21 @@
         },
         body: JSON.stringify({
           model: "meta-llama/llama-4-scout-17b-16e-instruct",
-          messages: [
-            { role: "user", content: prompt }
-          ]
+          messages: [ { role: "user", content: prompt } ]
         })
       });
       const data = await res.json();
       return data.choices?.[0]?.message?.content || rawText;
     }
 
-    async function askGroqAI(ingredients) {
-      const prompt = `For each of the following ingredients, answer in simple terms:\n1. What is it?\n2. Who should or shouldn't eat it?\n3. Any health warnings or benefits.\n\nIngredients:\n${ingredients.join("\n")}`;
+    function highlightFlags(ingredients) {
+      const flaggedInput = document.getElementById("filters").value.toLowerCase().split(/,\s*/);
+      const matched = ingredients.filter(ing => flaggedInput.some(flag => ing.toLowerCase().includes(flag)));
+      return matched.length ? `<pre style='color:#f87171;'>⚠️ Avoided Ingredients Found:\n${matched.join("\n")}</pre>` : "";
+    }
+
+    async function askGroqAI(ingredients, condition = "none") {
+      const prompt = `For each of the following ingredients, explain:\n1. What it is\n2. Who should/shouldn't eat it\n3. Health warnings or benefits\n\nUser condition: ${condition}\n\nIngredients:\n${ingredients.join("\n")}`;
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -130,13 +150,12 @@
         },
         body: JSON.stringify({
           model: "meta-llama/llama-4-scout-17b-16e-instruct",
-          messages: [
-            { role: "user", content: prompt }
-          ]
+          messages: [ { role: "user", content: prompt } ]
         })
       });
       const json = await res.json();
-      return json.choices?.[0]?.message?.content || "AI response failed.";
+      const rawText = json.choices?.[0]?.message?.content || "AI response failed.";
+      return `<details><summary>🔍 Ingredient Analysis</summary><pre>${rawText}</pre></details>`;
     }
   </script>
 </body>
